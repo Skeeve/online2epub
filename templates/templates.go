@@ -92,6 +92,7 @@ var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encodin
 
 // Seite - Template used for pages in the newspaper
 var Seite = newTemplate("Seite", funcMap, `<?xml version='1.0'?>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
@@ -140,6 +141,7 @@ var Seite = newTemplate("Seite", funcMap, `<?xml version='1.0'?>
 
 // Index - Template used for the index page
 var Index = newTemplate("Index", funcMap, `<?xml version='1.0'?>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
@@ -221,6 +223,7 @@ var ToC = newTemplate("ToC", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
 
 // NAV - Template used for the nav file
 var NAV = newTemplate("NAV", funcMap, `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head>
     <title>{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date }}</title>
@@ -253,6 +256,7 @@ var NAV = newTemplate("NAV", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
 
 // Article - Template for the newspaper articles
 var Article = newTemplate("Article", funcMap, `<?xml version='1.0'?>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 
 <head>
@@ -308,6 +312,7 @@ var Article = newTemplate("Article", funcMap, `<?xml version='1.0'?>
 
 // Imprint - The Impressum's template
 var Imprint = newTemplate("Impressum", funcMap, `<?xml version='1.0'?>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 
 <head>
@@ -371,7 +376,8 @@ const (
 	// The only thing changing on that page is the content of
 	// the title image. Its name is always the same
 	TitlePage = `<?xml version='1.0'?>
-<html xmlns='http://www.w3.org/1999/xhtml'>
+<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+    <html xmlns='http://www.w3.org/1999/xhtml'>
     <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
     <title>Titelseite</title>
