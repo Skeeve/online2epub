@@ -498,7 +498,6 @@ b, strong {
     line-height: 1.5;
 }
 
-
 .article .content p {
     margin-bottom: 1.04rem
 }
@@ -506,9 +505,11 @@ b, strong {
 .article .ortsmarke {
     font-weight: 900;
 }
+
 .article .ortsmarke::before {
     content: "("
 }
+
 .article .ortsmarke::after {
     content: ")"
 }
@@ -615,6 +616,9 @@ var NoLinkTarget = regexp.MustCompile(`(<a\b[^>]*)\starget=".*?"`)
 
 // MTbr - replace all br with proper empty tags
 var MTbr = regexp.MustCompile(`<(br)\s*>`)
+
+// Ortsmarke - Remove blanks at the end of ".ortsmarke"
+var Ortsmarke = regexp.MustCompile(`(<[^>]+class="[^">]*\bortsmarke\b[^">]*"[^<]+?)( +)(</b\b)`)
 
 func newTemplate(name string, funcMap template.FuncMap, tpl string) *template.Template {
 	result, err := template.New(name).Funcs(funcMap).Parse(tpl)

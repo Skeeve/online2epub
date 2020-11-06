@@ -485,9 +485,14 @@ func (c *client) getInfos(impressumURL string) {
 
 // Artikel "reinigen"
 func clean(artikel *article) {
-	artikel.Text = templates.MTbr.ReplaceAllString(
-		templates.NoLinkTarget.ReplaceAllString(artikel.Text, `$1`),
-		`$1`)
+	artikel.Text =
+		templates.Ortsmarke.ReplaceAllString(
+			templates.MTbr.ReplaceAllString(
+				templates.NoLinkTarget.ReplaceAllString(
+					artikel.Text,
+					`$1`),
+				`$1`),
+			`$1$3$2`)
 }
 
 // Erstellen eines Alternativtitels
