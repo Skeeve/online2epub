@@ -36,8 +36,8 @@ var funcMap = template.FuncMap{
 var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="3.0">
     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
-        <dc:identifier id="BookId">{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date}}</dc:identifier>
-        <dc:title>{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date}}</dc:title>
+        <dc:identifier id="BookId">{{.Ausgabe.Title}} - {{germanDate "2006-01-02" .Date}}</dc:identifier>
+        <dc:title>{{.Ausgabe.Title}} - {{germanDate "2006-01-02" .Date}}</dc:title>
         <dc:creator id="author">ZVA Digital GmbH</dc:creator>
         <dc:publisher>Zeitungsverlag Aachen GmbH</dc:publisher>
         <dc:date>{{germanDate "2006-01-02" .Date}}</dc:date>
