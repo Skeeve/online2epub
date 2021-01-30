@@ -44,6 +44,10 @@ var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encodin
         <dc:language>de</dc:language>
         <meta name="cover" content="titleImage" />
         <meta property="dcterms:modified">{{now "2006-01-02T15:04:05Z" }}</meta>
+        <meta property="file-as" refines="#author">ZVA Digital GmbH</meta>
+        <meta property="belongs-to-collection" id="collection">{{.Ausgabe.Title}} {{germanDate "2006" .Date}}</meta>
+        <meta refines="#collection" property="collection-type">series</meta>
+        <meta refines="#collection" property="group-position">{{germanDate "01-02" .Date}}</meta>
     </metadata>
     <manifest>
 
