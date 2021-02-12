@@ -201,12 +201,12 @@ func main() {
 
 func (c *client) createAzanEpub(wantedDate string) {
 
-	// Hole die Basisdatei der gewünschten Ausgaeb
+	// Hole die Basisdatei der gewünschten Ausgabe
 	zeitung := new(ausgabe)
 	c.getJSON(wantedDate, zeitung)
 
 	if !zeitung.Subscription && !zeitung.Bought {
-		log.Fatal(fmt.Sprintf("Die %s wurde weder aboniert noch gekauft", zeitung.Title))
+		log.Fatal(fmt.Sprintf("Die %s wurde weder abonniert noch gekauft", zeitung.Title))
 	}
 
 	// Das Datum ist als String in der Ausgabe hinterlegt
