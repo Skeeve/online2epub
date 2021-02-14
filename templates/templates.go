@@ -27,8 +27,11 @@ var funcMap = template.FuncMap{
 				return "</navPoint>"
 			}
 			i++
-			return `<navPoint id="` + strings.Replace(id[0], "-", "_", -1) + `" playOrder="` + strconv.Itoa(i) + `">`
+			return `<navPoint id="id_` + strconv.Itoa(i) + `" playOrder="` + strconv.Itoa(i) + `">`
 		}
+	},
+	"noEntity": func(txt string) string {
+		return EntityReplace.Replace(txt)
 	},
 }
 
@@ -54,16 +57,18 @@ var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encodin
         <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml" />
         <item href="title.xhtml" id="title" media-type="application/xhtml+xml" />
         <item href="index.xhtml" id="index" media-type="application/xhtml+xml" />
+        
         {{- range .Seiten}}{{$pgidx := .Index}}
-
         <item href="seite_{{$pgidx}}.xhtml" id="seite_{{$pgidx}}" media-type="application/xhtml+xml" />
-        {{- range .Sequence}}
-        <item href="article_{{.ID}}.xhtml" id="article_{{$pgidx}}_{{.ID}}" media-type="application/xhtml+xml" />
-        {{- range .Pictures}}
+        {{- end}}
+
+        {{- range .AlleArtikel}}
+        <item href="{{.Filename}}" id="{{.XMLID}}" media-type="application/xhtml+xml" />
+        {{- end}}
+
+        {{- range .AlleBilder}}
         {{- if .Size}}
-        <item href="images/{{.ID}}.jpg" id="image_{{.ID}}" media-type="image/jpeg" />
-        {{- end}}
-        {{- end}}
+        <item href="{{.Filename}}" id="image_{{.ID}}" media-type="image/jpeg" />
         {{- end}}
         {{- end}}
 
@@ -81,7 +86,7 @@ var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encodin
 
         <itemref idref="seite_{{$pgidx}}" />
         {{- range .Sequence}}
-        <itemref idref="article_{{$pgidx}}_{{.ID}}" />
+        <itemref idref="{{.Article.XMLID}}" />
         {{- end}}
         {{- end}}
 
@@ -96,7 +101,7 @@ var ContentOPF = newTemplate("ContentOPF", funcMap, `<?xml version="1.0" encodin
 
 // Seite - Template used for pages in the newspaper
 var Seite = newTemplate("Seite", funcMap, `<?xml version='1.0'?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
@@ -119,8 +124,8 @@ var Seite = newTemplate("Seite", funcMap, `<?xml version='1.0'?>
     {{- if .Seite.Sequence}}
     {{- range .Seite.Sequence}}
     <div class='ToCentry'>
-        <a class='index-link' href='article_{{.ID}}.xhtml'>
-            {{html .AltTitle}}
+        <a class='index-link' href='{{.Article.Filename}}'>
+            {{html .Article.AltTitle}}
         </a>
     </div>
     {{- end}}
@@ -145,7 +150,7 @@ var Seite = newTemplate("Seite", funcMap, `<?xml version='1.0'?>
 
 // Index - Template used for the index page
 var Index = newTemplate("Index", funcMap, `<?xml version='1.0'?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>
@@ -179,7 +184,7 @@ var ToC = newTemplate("ToC", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
     xmlns="http://www.daisy.org/z3986/2005/ncx/">
     <head>
         <meta content="{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date }}" name="dc:Title"/>
-        <meta name="dtb:uid" content="{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date }}"/>
+        <meta name="dtb:uid" content="{{.Ausgabe.Title}} - {{germanDate "2006-01-02" .Date }}"/>
     </head>
     <docTitle>
         <text>{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date }}</text>
@@ -205,12 +210,11 @@ var ToC = newTemplate("ToC", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
         </navLabel>
         <content src="seite_{{.Index}}.xhtml"/>
         {{- range .Sequence}}
-        {{$id := printf "article_%s" .ID}}
-        {{call $navpoint $id}}
+        {{call $navpoint .Article.XMLID}}
             <navLabel>
-                <text>{{html .AltTitle}}</text>
+                <text>{{html .Article.AltTitle}}</text>
             </navLabel>
-            <content src="{{$id}}.xhtml"/>
+            <content src="{{.Article.Filename}}"/>
         {{call $navpoint}}
         {{- end}}
     {{call $navpoint}}
@@ -227,7 +231,7 @@ var ToC = newTemplate("ToC", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
 
 // NAV - Template used for the nav file
 var NAV = newTemplate("NAV", funcMap, `<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head>
     <title>{{.Ausgabe.Title}} - {{germanDate "02. Jan. 2006" .Date }}</title>
@@ -244,8 +248,7 @@ var NAV = newTemplate("NAV", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
             {{- if .Sequence }}
             <ol>
                 {{- range .Sequence}}
-                {{$id := printf "article_%s" .ID}}
-                <li><a href="{{$id}}.xhtml">{{html .AltTitle}}</a></li>
+                <li><a href="{{.Article.Filename}}">{{html .Article.AltTitle}}</a></li>
                 {{- end}}
             </ol>
             {{- end}}
@@ -260,7 +263,7 @@ var NAV = newTemplate("NAV", funcMap, `<?xml version="1.0" encoding="UTF-8" stan
 
 // Article - Template for the newspaper articles
 var Article = newTemplate("Article", funcMap, `<?xml version='1.0'?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 
 <head>
@@ -286,14 +289,14 @@ var Article = newTemplate("Article", funcMap, `<?xml version='1.0'?>
             <p class="imgerr">Dieses Bild konnte nicht geladen werden</p>
             {{- end}}
             {{- if .Description}}
-            <p class="imgdescription">{{.Description}}</p>
+            <p class="imgdescription">{{noEntity .Description}}</p>
             {{- end}}
         </div>
             {{- end}}
         {{- end}}
         {{- if .A.Author}}
         <div class='author'>
-            {{.A.Author}}
+            {{noEntity .A.Author}}
         </div>
         {{- end}}
         {{- if .A.Text}}
@@ -314,9 +317,32 @@ var Article = newTemplate("Article", funcMap, `<?xml version='1.0'?>
 </html>
 `)
 
+// DupArticle - Template for a duplicated newspaper articles
+var DupArticle = newTemplate("Article", funcMap, `<?xml version='1.0'?>
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+    <title>{{html .A.AltTitle}}</title>
+    <link rel='stylesheet' type='text/css' href='zva.epub.css' />
+</head>
+
+<body>
+    <div class='article'>
+        <div class='header'>
+            {{if .A.Title}}<h1>{{html .A.Title}}</h1>{{end}}
+            <p>Dieser Artikel befindet sich bereits auf {{.A.Underline}}</p>
+        </div>
+    </div>
+</body>
+
+</html>
+`)
+
 // Imprint - The Impressum's template
 var Imprint = newTemplate("Impressum", funcMap, `<?xml version='1.0'?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml'>
 
 <head>
@@ -375,12 +401,17 @@ var German = strings.NewReplacer(
 	"Sunday", "Sontag", "Sun", "Son",
 )
 
+// EntityReplace - Replaces - for now - only nbsp withh char(160)
+var EntityReplace = strings.NewReplacer(
+	"&nbsp;", "\u00A0",
+)
+
 const (
 	// TitlePage - The fixed content of the newspaper's title page
 	// The only thing changing on that page is the content of
 	// the title image. Its name is always the same
 	TitlePage = `<?xml version='1.0'?>
-<!DOCTYPE html [ <!ENTITY nbsp "&#160;"> ]>
+<!DOCTYPE html>
     <html xmlns='http://www.w3.org/1999/xhtml'>
     <head>
     <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
@@ -587,7 +618,7 @@ a.external::after {
 
 .ToC .ToCentry:first-of-type {
     border-top: 1px solid #ddd;
-    margin-top: 1-08rem;
+    margin-top: 1.08rem;
 }
 
 .ToC .source {

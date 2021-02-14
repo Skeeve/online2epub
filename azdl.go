@@ -88,7 +88,7 @@ type element struct {
 	Underline string `json:"underline"` //  "An der frischen Luft …"
 	Headline  string `json:"headline"`  //  "",
 	Location  string `json:"location"`  //  ""
-	AltTitle  string
+	Article   *article
 	Pictures  []picture
 }
 
@@ -104,6 +104,7 @@ type picture struct {
 	Type        string `json:"type"`        //  "picture",
 	Description string `json:"description"` //  null
 	Size        int64
+	Filename    string
 }
 
 type page struct {
@@ -148,7 +149,9 @@ type article struct {
 	Wordcount  int       `json:"wordcount"`  //  13
 	Prev       link      `json:"prev"`
 	Next       link      `json:"next"`
+	XMLID      string
 	AltTitle   string
+	Filename   string
 }
 
 type pgInfo struct {
@@ -247,8 +250,9 @@ func (c *client) createAzanEpub(wantedDate string) {
 	// Array für die Seiten
 	seiten := make([]*seite, zeitung.Pages)
 	// map für die Artikel
-	alleArtikel := make(map[string]*article)
-
+	alleArtikel := map[string]*article{}
+	alleBilder := map[string]*picture{}
+	var duplicateCount int
 	// Durch alle Seiten iterieren
 	for i := 0; i < zeitung.Pages; i++ {
 		fmt.Print(" ", i, "\r")
@@ -282,31 +286,56 @@ func (c *client) createAzanEpub(wantedDate string) {
 				artikel := new(article)
 				c.getJSON(seitenURL+"/"+element.ID, artikel)
 
-				// Verknüpfungen
-				alleArtikel[artikel.ID] = artikel
-				id2idx[artikel.ID] = idx
-				idx2next[idx] = artikel.Next.ID
+				var templ *template.Template
+				if original, duplicate := alleArtikel[artikel.ID]; duplicate {
+					// Doppelter Artikel
+					duplicateCount++
+					artikel.Filename = "duplicate_" + artikel.ID + ".xhtml"
+					artikel.Underline = `<a href="article_` + artikel.ID + `.xhtml">Seite ` + strconv.Itoa(original.Paper.Page.Number) + `</a>`
+					artikel.AltTitle = original.AltTitle
+					artikel.XMLID = "duplicate_" + strconv.Itoa(duplicateCount)
+					alleArtikel[artikel.XMLID] = artikel
+					id2idx[artikel.XMLID] = idx
+					idx2next[idx] = artikel.Next.ID
+					idx2next[id2idx[artikel.Prev.ID]] = artikel.XMLID
+					dieseSeite.Elements[idx].Article = artikel
+					templ = templates.DupArticle
+				} else {
+					artikel.Filename = "article_" + artikel.ID + ".xhtml"
+					artikel.XMLID = "article_" + artikel.ID
 
-				// Alternativtitel erstellen aus
-				// dem Inhalt des Artikels
-				altTitle := cheapExerpt(artikel)
-				clean(artikel)
-				artikel.AltTitle = altTitle
-				dieseSeite.Elements[idx].AltTitle = altTitle
-				dieseSeite.Elements[idx].Pictures = artikel.Pictures
+					// Verknüpfungen
+					alleArtikel[artikel.ID] = artikel
+					id2idx[artikel.ID] = idx
+					idx2next[idx] = artikel.Next.ID
 
-				// Bilder holen
-				for idx, picture := range artikel.Pictures {
-					size := c.saveFromURL(azanEpub, seitenURL+"/"+picture.ID+"/jpg", "OEBPS/images/"+picture.ID+".jpg")
-					artikel.Pictures[idx].Size = size
-					if size < 1 {
-						fmt.Println("Fehlendes Bild Seite ", dieseSeite.Number, " ", altTitle)
+					// Alternativtitel erstellen aus
+					// dem Inhalt des Artikels
+					altTitle := cheapExerpt(artikel)
+					clean(artikel)
+					artikel.AltTitle = altTitle
+					dieseSeite.Elements[idx].Article = artikel
+					dieseSeite.Elements[idx].Pictures = artikel.Pictures
+
+					// Bilder holen
+					for idx, picture := range artikel.Pictures {
+						bild := "images/" + picture.ID + ".jpg"
+						if _, ok := alleBilder[bild]; !ok {
+							filename := "images/" + picture.ID + ".jpg"
+							size := c.saveFromURL(azanEpub, seitenURL+"/"+picture.ID+"/jpg", "OEBPS/"+filename)
+							alleBilder[bild] = &artikel.Pictures[idx]
+							artikel.Pictures[idx].Size = size
+							artikel.Pictures[idx].Filename = filename
+							if size < 1 {
+								fmt.Println("Fehlendes Bild Seite ", dieseSeite.Number, " ", altTitle)
+							}
+						}
 					}
+					templ = templates.Article
 				}
-
 				// xhtml Datei für den Artikel erstellen
 				date, _ := time.Parse("20060102", artikel.Paper.Date)
-				writeTemplate(azanEpub, "OEBPS/article_"+artikel.ID+".xhtml", templates.Article, struct {
+				writeTemplate(azanEpub, "OEBPS/"+artikel.Filename, templ, struct {
 					URL  string
 					A    *article
 					Date time.Time
@@ -373,15 +402,19 @@ func (c *client) createAzanEpub(wantedDate string) {
 
 	// Daten für Table Of Content etc.
 	data := struct {
-		URL     string
-		Ausgabe *ausgabe
-		Seiten  []*seite
-		Date    time.Time
+		URL         string
+		Ausgabe     *ausgabe
+		Seiten      []*seite
+		Date        time.Time
+		AlleArtikel map[string]*article
+		AlleBilder  map[string]*picture
 	}{
 		c.BaseURL,
 		zeitung,
 		seiten,
 		date,
+		alleArtikel,
+		alleBilder,
 	}
 
 	// ePub Steuerdateien erstellen
@@ -489,10 +522,12 @@ func clean(artikel *article) {
 		templates.Ortsmarke.ReplaceAllString(
 			templates.MTbr.ReplaceAllString(
 				templates.NoLinkTarget.ReplaceAllString(
-					artikel.Text,
+					templates.EntityReplace.Replace(artikel.Text),
 					`$1`),
 				`$1`),
 			`$1$3$2`)
+	artikel.Title = templates.EntityReplace.Replace(artikel.Title)
+	artikel.Underline = templates.EntityReplace.Replace(artikel.Underline)
 }
 
 // Erstellen eines Alternativtitels
